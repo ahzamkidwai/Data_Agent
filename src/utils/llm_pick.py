@@ -23,6 +23,3 @@ def pick_llm(level: str):
         raise ValueError("Invalid level. Chose from 'easy', 'medium', or 'hard'")
     
     return llm
-
-llm_obj = pick_llm("low")
-print("LLM OBJECT is : ", llm_obj)
