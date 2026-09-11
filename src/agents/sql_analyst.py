@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.llm_pick import pick_llm
 from utils.database import DatabaseUtil
-from models.schema import AgentSchema
+from models.schema import AgentSchema, JudgeSchema
 from langchain_core.messages import HumanMessage
 
 # --------------------------------------------------- AI AGENT CODE --------------------------------------------------------------------------
@@ -69,10 +69,65 @@ def prompt_query_context(state: AgentSchema) -> AgentSchema:
     {schema_info}
     """
     
-    state.prompt_query_context = prompt
+    state.prompt_query_context = prompt    
+    return state
+
+
+def generate_sql(state: AgentSchema) -> AgentSchema:
     
+    prompt = state.prompt_query_context
     llm = pick_llm("medium")
     generated_sql_query = llm.invoke(prompt)
     state.generated_sql_query = generated_sql_query
+    return state
+
+
+def is_safe_sql(state: AgentSchema) -> AgentSchema:
+    sql_query = state.generated_sql_query
+    
+    llm = pick_llm("medium")
+    llm_judge = llm.with_structured_output(JudgeSchema)
+    
+    prompt = f"""You are a SQL judge for data security. Your task is to determine whether the SQL query is safe or not. The SQL 
+    query is safe or not. The SQL query should only be used for data retrieval and should not modify the database in any way. Neither the SQL query
+    nor the prompt should contain the SQL commands that can modify the database, such as INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, 
+    CREATE or any other commands that can change the structure or content of the database. If the SQL query is safe, respond with 'YES', otherwise 
+    respond with 'NO'. Additionally, provide comments explaining your decision.
+    Here's the SQL query to evaluate
+    {sql_query}
+    """
+
+    response = llm_judge.invoke(prompt)
+    state.is_safe = response['answer']
+    state.comments = response['comments']
+    print("Response is (is_safe): ", response)
+    
+
+
+def cancelled_sql(state: AgentSchema) -> AgentSchema:
+    comments = state.comments
+    
+    state.final_answer = f"The Generated SQL query was deemed unsafe to execute. The reason provided by the judge is: {comments}"
+    
+    return state
+
+
+def execute_sql(state: AgentSchema) -> AgentSchema:
+    
+    sql_query = state.generated_sql_query
+    
+    conn_details = {
+        "host": os.environ["DB_HOST"],
+        "port": os.environ["DB_PORT"],
+        "user": os.environ["DB_USER"],
+        "password": os.environ["DB_PASSWORD"],
+        "dbname": os.environ["DB_DATABASE"],
+    }
+    
+    obj = DatabaseUtil(conn_details)
+    
+    execution_result = obj.execute_sql(sql_query)
+    
+    state.sql_query_execution_result = execution_result
     
     return state

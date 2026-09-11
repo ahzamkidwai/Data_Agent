@@ -145,6 +145,22 @@ class DatabaseUtil:
 
         return schema_info_context
 
+    def execute_query(self, query):
+        try:
+            connection = self.connection
+            cursor = connection.cursor()
+            cursor.execute(query)
+            result = cursor.fetchall()
+            connection.commit()
+            return str(result)
+        except psycopg2.Error as e:
+            print(f"Error executing query: {e}")
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+            if connection:
+                connection.close()
 
 def handler():
     db_config = {
