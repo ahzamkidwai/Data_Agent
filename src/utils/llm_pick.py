@@ -23,3 +23,7 @@ def pick_llm(level: str):
         raise ValueError("Invalid level. Chose from 'easy', 'medium', or 'hard'")
     
     return llm
+
+if __name__ == "__main__":
+    llm_obj = pick_llm("low")
+    print(llm_obj.invoke("What is the capital city of France?"))
