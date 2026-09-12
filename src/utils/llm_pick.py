@@ -1,4 +1,4 @@
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,11 +14,11 @@ def pick_llm(level: str):
     """
     
     if level.lower() == "low":
-        llm = ChatOpenAI(model='gpt-5.6-luna', temperature=0)
+        llm = ChatGoogleGenerativeAI(model='gemini-3.6-flash', temperature=0)
     elif level.lower() == "medium":
-        llm = ChatOpenAI(model='gpt-5.6-terra', temperature=0)
+        llm = ChatGoogleGenerativeAI(model='gemini-3.6-flash', temperature=0)
     elif level.lower() == "hard":
-        llm = ChatOpenAI(model='gpt-5.6-sol', temperature=0)
+        llm = ChatGoogleGenerativeAI(model='gemini-3.6-flash', temperature=0)
     else:
         raise ValueError("Invalid level. Chose from 'easy', 'medium', or 'hard'")
     
