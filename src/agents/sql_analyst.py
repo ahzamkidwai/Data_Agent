@@ -46,6 +46,8 @@ def curate_question(state: AgentSchema) -> AgentSchema:
     else:
         curated_question = response.content
 
+    print("\n\nCurated Question : ", curated_question)
+
     state.curated_ques = curated_question
     state.messages = state.messages + [AIMessage(content=curated_question)]
 
@@ -81,6 +83,8 @@ def prompt_query_context(state: AgentSchema) -> AgentSchema:
     {schema_info}
     """
     
+    print("\n\nPrompt Query Context : ", prompt)
+    
     state.prompt_query_context = prompt    
     return state
 
@@ -109,9 +113,9 @@ def generate_sql(state: AgentSchema) -> AgentSchema:
         )
     else:
         generated_sql_query = response.content
-
+        
+    print("\n\nGenerated SQL Query : ", generated_sql_query)
     state.generated_sql_query = generated_sql_query
-
     return state
 
 
@@ -135,7 +139,7 @@ def is_safe_sql(state: AgentSchema) -> AgentSchema:
     response = llm_judge.invoke(prompt).model_dump()
     state.is_safe = response['answer']
     state.comments = response['comments']
-    print("Response is (is_safe): ", response)
+    print("\n\nResponse is (is_safe): ", response)
     
 
 
@@ -163,6 +167,8 @@ def execute_sql(state: AgentSchema) -> AgentSchema:
     
     execution_result = obj.execute_sql(sql_query)
     
+    print("\n\nExecution Result : ", execution_result)
+    
     state.sql_query_execution_result = execution_result
     
     return state
@@ -189,6 +195,7 @@ def represent_final_answer(state: AgentSchema) -> AgentSchema:
     llm_response = llm.invoke(prompt).content
     
     state.final_answer = llm_response
+    print("\n\nFinal Answer : ", llm_response)
     state.messages = state.messages + [AIMessage(content=f"{llm_response}")]
     
     return state
@@ -226,7 +233,7 @@ def is_safe_sql_edge(state: AgentSchema) -> str:
     else:
         return "cancelled_sql"
     
-sql_agent_graph.add_conditional_edges("is_safe_sql", is_safe_sql_edge)
+sql_agent_graph.add_conditional_edges("is_safe_sql", is_safe_sql_edge, { "execute_sql": "execute_sql", "cancelled_sql": "cancelled_sql" })
 
 sql_agent_graph.add_edge("cancelled_sql", END)
 sql_agent_graph.add_edge("execute_sql", "represent_final_answer")
@@ -256,3 +263,4 @@ if __name__ == "__main__":
     
     # Execute the graph
     sql_analyst_response = sql_analyst.invoke(input_schema)
+    print("\n\nSQL Analyst Response : ", sql_analyst_response)
