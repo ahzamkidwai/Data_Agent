@@ -82,21 +82,28 @@ class DatabaseUtil:
         return schema_info_context
 
     def execute_sql(self, query):
+        connection = self.connection
+        cursor = None
+
+        if connection is None:
+            return "Database connection is not available."
+
         try:
-            connection = self.connection
             cursor = connection.cursor()
             cursor.execute(query)
-            result = cursor.fetchall()
-            connection.commit()
-            return str(result)
+            if cursor.description is None:
+                connection.commit()
+                return "Query executed successfully."
+
+            return str(cursor.fetchall())
         except psycopg2.Error as e:
+            connection.rollback()
             print(f"Error executing query: {e}")
-            return None
+            return f"Database error: {e}"
         finally:
-            if cursor:
+            if cursor is not None:
                 cursor.close()
-            if connection:
-                connection.close()
+            connection.close()
 
 def handler():
     db_config = {

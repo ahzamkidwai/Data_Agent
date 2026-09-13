@@ -113,6 +113,12 @@ def generate_sql(state: AgentSchema) -> AgentSchema:
         )
     else:
         generated_sql_query = response.content
+
+    generated_sql_query = generated_sql_query.strip()
+    if generated_sql_query.startswith("```") and generated_sql_query.endswith("```"):
+        generated_sql_query = generated_sql_query[3:-3].strip()
+        if generated_sql_query.lower().startswith("sql"):
+            generated_sql_query = generated_sql_query[3:].lstrip()
         
     print("\n\nGenerated SQL Query : ", generated_sql_query)
     state.generated_sql_query = generated_sql_query
@@ -140,6 +146,7 @@ def is_safe_sql(state: AgentSchema) -> AgentSchema:
     state.is_safe = response['answer']
     state.comments = response['comments']
     print("\n\nResponse is (is_safe): ", response)
+    return state
     
 
 
@@ -157,7 +164,7 @@ def execute_sql(state: AgentSchema) -> AgentSchema:
     
     conn_details = {
         "host": os.environ["DB_HOST"],
-        "port": os.environ["DB_PORT"],
+        "port": os.environ.get("DB_PORT", "5432"),
         "user": os.environ["DB_USER"],
         "password": os.environ["DB_PASSWORD"],
         "dbname": os.environ["DB_DATABASE"],
