@@ -5,11 +5,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.llm_pick import pick_llm
 from utils.etl_tools import ETLTools
-from Models.schema import ETLAgentSchema
+from models.schema import ETLAgentSchema
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langchain.tools import tool
-from langchain_openrouter import ChatOpenRouter
 
 
 @tool
@@ -70,3 +69,82 @@ def transform_load_tool(input_file_path: str, output_folder: str, output_format:
 tools = [extract_load_tool, transform_load_tool]
 llm = pick_llm('claude')
 llm_bind = llm.bind_tools(tools)
+
+
+# ------------------------------------------------------------ AGENT GRAPH -------------------------------------------------------------------------
+
+def llm_node(state: ETLAgentSchema):
+    messages = state.messages
+    
+    prompt = f""" You are a python data analyst who has access to tools that can extract and load, transform and load data. 
+    You will be provided with a user's question and you would need to perform the right ETL operation's as per the user's question. If the operation is performed then inform the user and end the conversation. 
+    Here's the chat history: {messages}\n"""
+    
+    final_answer = llm_bind.invoke(prompt)
+    
+    state.messages = messages + [final_answer]
+    
+    return state
+    
+    
+def tool_node(state: ETLAgentSchema):
+    """
+    This node is responsible for invoking the appropriate tool based on the user's question
+    """
+    
+    tool_results = []
+    
+    tools_by_name = {tool.name: tool for tool in tools}
+    
+    tool_calls = state.messages[-1].tool_calls
+    
+    for tool_call in tool_calls:
+        tool = tools_by_name[tool_call['name']]
+        observation = tool.invoke(tool_call['args'])
+        tool_results.append(ToolMessage(content=observation, tool_call_id=tool_call['id']))
+    
+    state.messages = state.messages + tool_results
+    
+    return state
+
+# Nodes and Edges
+etl_analyst_graph = StateGraph(ETLAgentSchema)
+etl_analyst_graph.add_node("llm_node", llm_node)
+etl_analyst_graph.add_node("tool_node", tool_node)
+
+
+etl_analyst_graph.add_edge(START, "llm_node")
+
+def is_tool_call(state: ETLAgentSchema):
+    tool_calls = state.messages[-1].tool_calls
+    
+    if tool_calls:
+        return "tool_node"
+    else: 
+        return "end"
+    
+etl_analyst_graph.add_conditional_edges("llm_node", is_tool_call, {
+    "tool_node": "tool_node", 
+    "end": END
+})
+    
+etl_analyst_graph.add_edge("tool_node", "llm_node")
+    
+if __name__ == "__main__":
+    # llm_bind = pick_llm("claude").bind_tools(tools)
+    # print(llm_bind.invoke("I want to extract the data from the API Endpoint 'https://api.example.com/' "))
+    
+    etl_analyst = etl_analyst_graph.compile()
+    
+    # Optional
+    from IPython.display import display, Image
+    img = Image(etl_analyst.get_graph().draw_mermaid_png())
+    with open("etl_analyst_graph.png", "wb") as f:
+        f.write(img.data)
+        
+    response = etl_analyst.invoke({
+        "messages": [HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")]
+    })
+    
+    print("Response : ", response)
+    
