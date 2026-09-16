@@ -129,12 +129,11 @@ etl_analyst_graph.add_conditional_edges("llm_node", is_tool_call, {
 })
     
 etl_analyst_graph.add_edge("tool_node", "llm_node")
+etl_analyst = etl_analyst_graph.compile()
     
 if __name__ == "__main__":
     # llm_bind = pick_llm("claude").bind_tools(tools)
     # print(llm_bind.invoke("I want to extract the data from the API Endpoint 'https://api.example.com/' "))
-    
-    etl_analyst = etl_analyst_graph.compile()
     
     # Optional
     from IPython.display import display, Image
