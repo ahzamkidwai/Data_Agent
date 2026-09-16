@@ -44,6 +44,8 @@ def pick_llm(level: str):
         model = "openrouter/free"
     elif level == "hard":
         model = "openrouter/free"
+    elif level == "claude":
+        model = "openrouter/free"
     else:
         raise ValueError("Invalid level. Choose from 'low', 'medium', or 'hard'.")
 
