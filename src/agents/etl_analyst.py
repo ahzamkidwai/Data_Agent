@@ -83,7 +83,7 @@ def llm_node(state: ETLAgentSchema):
     final_answer = llm_bind.invoke(prompt)
     
     state.messages = messages + [final_answer]
-    
+    print("\n\nmessages (inside llm_node) : ", final_answer)
     return state
     
     
@@ -104,7 +104,7 @@ def tool_node(state: ETLAgentSchema):
         tool_results.append(ToolMessage(content=observation, tool_call_id=tool_call['id']))
     
     state.messages = state.messages + tool_results
-    
+    print("\n\nresponse (tool_node) : ", tool_results)  
     return state
 
 # Nodes and Edges
@@ -142,9 +142,13 @@ if __name__ == "__main__":
     with open("etl_analyst_graph.png", "wb") as f:
         f.write(img.data)
         
-    response = etl_analyst.invoke({
-        "messages": [HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")]
-    })
+    # response = etl_analyst.invoke({
+    #     "messages": [HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")],   
+    # }, config={"recursion_limit": 3})
     
-    print("Response : ", response)
+    response = etl_analyst.invoke({
+            "messages": [HumanMessage(content="I want to extract the data from the API endpoint 'https://pokeapi.co/api/v2/pokemon' and save it to data/extract folder in the csv folder")],   
+        })
+    
+    print("\n\n\nResponse : ", response)
     

@@ -27,16 +27,16 @@ class ETLTools:
             response.raise_for_status()
             data = response.json()
             
-            filename = os.path.join(output_folder, f"Extracted_data.{format}")
+            filename = os.path.join(output_folder, f"Extracted_data.{output_format}")
             os.makedirs(output_folder, exist_ok=True)
             
             df = pd.json_normalize(data['results'])
-            if format == "csv":
+            if output_format == "csv":
                 df.to_csv(filename, index=False)
-            elif format == "json":
+            elif output_format == "json":
                 df.to_json(filename, orient="records", lines=True)
             else:
-                return f"Unsupported Format: {format}"
+                return f"Unsupported Format: {output_format}"
             
             return f"Data successfully extracted and saved to {filename}"
         except requests.exceptions.RequestException as e:
